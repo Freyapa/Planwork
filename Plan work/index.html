@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ระบบจัดการแผนงาน</title>
+  <style>
+    body {
+      font-family: 'Prompt', sans-serif;
+      background: linear-gradient(to right, #e0f7fa, #fff);
+      padding: 20px;
+      animation: fadeIn 1s ease-in;
+      
+    }
+    h1, h2 {
+      text-align: center;
+      color: #00796b;
+    }
+    table {
+      width: 100%;
+      min-width: 1200px;
+      border-collapse: collapse;
+      margin-top: 20px;
+      animation: slideIn 1s ease-out;
+    }
+    th, td {
+      border: 1px solid #aaa;
+      padding: 8px;
+      text-align: center;
+    }
+    th {
+      background-color: #00796b;
+      color: white;
+    }
+    .status-done { background-color: #b03b14; }
+    .status-progress { background-color: #fff59d; }
+    .status-completed { background-color: #81d4fa; }
+    .status-red { color: red; font-weight: bold; }
+    nav {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    nav select, nav a {
+      margin: 0 10px;
+      font-weight: bold;
+    }
+    .page {
+      display: none;
+    }
+    .page.active {
+      display: block;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    @keyframes slideIn {
+      from { transform: translateY(-20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    button {
+      background-color: #00796b;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      margin: 5px;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: transform 0.2s, background-color 0.3s;
+    }
+    button:hover {
+      background-color: #004d40;
+      transform: scale(1.05);
+    }
+    button:active {
+      transform: scale(0.98);
+    }
+  </style>
+</head>
+<body>
+  <h1>ระบบจัดการแผนงานรายเดือน</h1>
+  <nav>
+    <select id="monthSelect" onchange="renderTable()">
+      <option value="01">มกราคม</option>
+      <option value="02">กุมภาพันธ์</option>
+      <option value="03">มีนาคม</option>
+      <option value="04">เมษายน</option>
+      <option value="05">พฤษภาคม</option>
+      <option value="06">มิถุนายน</option>
+      <option value="07">กรกฎาคม</option>
+      <option value="08">สิงหาคม</option>
+      <option value="09">กันยายน</option>
+      <option value="10">ตุลาคม</option>
+      <option value="11">พฤศจิกายน</option>
+      <option value="12">ธันวาคม</option>
+    </select>
+    <a href="#" onclick="showPage('add')">เพิ่มแผนงาน</a>
+    <a href="#" onclick="showPage('table')">ตารางแผนงาน</a>
+    <a href="#" onclick="showPage('tableByDate')">ตารางตามวันที่</a>
+    <a href="#" onclick="showPage('schedule')">📚 ตารางสอนของฉัน</a>
+  </nav>
+
+   
+  <div id="add" class="page active">
+    <h2 style="color: rgb(from color r g b);">📝 เพิ่มแผนงานและนักเรียน</h2>
+    <form onsubmit="addPlan(event)">
+      <label>ชื่อแผนงาน: <input type="text" id="planName" required></label><br><br>
+      <label>วันที่เริ่ม: <input type="date" id="startDate" required></label>
+      <label>วันที่เสร็จ: <input type="date" id="endDate" required></label><br><br>
+      <label>เวลาเข้า: <input type="time" id="timeIn"></label>
+      <label>เวลาออก: <input type="time" id="timeOut"></label><br><br>
+      <label>สถานะ: 
+        <select id="planStatus">
+          <option value="status-done">ไม่สำเร็จ</option>
+          <option value="status-progress">ระหว่างทำ</option>
+          <option value="status-completed">สมบูรณ์</option>
+        </select>
+      </label><br><br>
+      <label>ปัญหา: <input type="text" id="problem"></label><br><br>
+      <label>การแก้ไข: <input type="text" id="solution"></label><br><br>
+      <label>ชื่อนักเรียน: <input type="text" id="studentName"></label>
+      <label>วิชา: <input type="text" id="subject"></label>
+      <label>หัวข้อ: <input type="text" id="topic"></label><br><br>
+      <button type="submit">บันทึกแผนงาน</button>
+    </form>
+  </div>
+  
+
+  <!-- ตารางตามเดือน -->
+  <div id="table" class="page">
+    <h2>📅 ตารางแผนงาน</h2>
+    <button onclick="downloadPDF()">📥 ดาวน์โหลด PDF</button>
+    <table id="planTable">
+      <thead>
+        <tr>
+          <th>ชื่อแผนงาน</th>
+          <th>วันที่</th>
+          <th>เวลาทำงาน</th>
+          <th>ระยะเวลา (วัน)</th>
+          <th>สถานะ</th>
+          <th>ปัญหา</th>
+          <th>การแก้ไข</th>
+          <th>นักเรียน</th>
+          <th>วิชา</th>
+          <th>หัวข้อ</th>
+          <th>จัดการ</th>
+        </tr>
+      </thead>
+      <tbody id="planTableBody"></tbody>
+    </table>
+  </div>
+
+  <!-- ตารางตามวันที่ -->
+  <div id="tableByDate" class="page">
+    <h2>📆 ตารางแผนงานตามวันที่บันทึก</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>วันที่บันทึก</th>
+          <th>ชื่อแผนงาน</th>
+          <th>วันที่เริ่ม - สิ้นสุด</th>
+          <th>เวลาทำงาน</th>
+          <th>ระยะเวลา</th>
+          <th>สถานะ</th>
+          <th>นักเรียน</th>
+        </tr>
+      </thead>
+      <tbody id="tableByDateBody"></tbody>
+    </table>
+  </div>
+  <!-- เพิ่มใน <div class="page"> หน้าใหม่ -->
+<div id="schedule" class="page">
+  <h2>📚 ตารางสอนของฉัน</h2>
+  <form onsubmit="addSchedule(event)">
+    <label>วัน:
+      <select id="teachDay" required>
+        <option value="อังคาร">อังคาร</option>
+        <option value="พุธ">พุธ</option>
+        <option value="พฤหัสบดี">พฤหัสบดี</option>
+        <option value="ศุกร์">ศุกร์</option>
+        <option value="เสาร์">เสาร์</option>
+        <option value="อาทิตย์">อาทิตย์</option>
+      </select>
+    </label>
+    <label>เวลา: <input type="time" id="teachTime" required></label>
+    <label>รายวิชา:
+      <select id="subjectType" required>
+        <option value="Scratch">Scratch</option>
+        <option value="Microbit">Microbit</option>
+      </select>
+    </label>
+    <label>ระดับ: <input type="text" id="level" required></label>
+    <label>นักเรียน: <input type="text" id="student" required></label>
+    <label>ครูผู้สอน: <input type="text" id="teacher" required></label>
+    <button type="submit">➕ เพิ่มตารางสอน</button>
+  </form>
+
+  <table>
+    <thead>
+      <tr>
+        <th>วัน</th>
+        <th>เวลา</th>
+        <th>รายวิชา</th>
+        <th>ระดับ</th>
+        <th>นักเรียน</th>
+        <th>ครูผู้สอน</th>
+        <th>จัดการ</th>
+      </tr>
+    </thead>
+    <tbody id="scheduleTableBody"></tbody>
+  </table>
+</div>
+
+<!-- เพิ่มใน <script> section ด้านล่างสุด -->
+<script>
+  let schedules = JSON.parse(localStorage.getItem('schedules')) || [];
+  let editScheduleIndex = null;
+
+  function renderScheduleTable() {
+    const tbody = document.getElementById('scheduleTableBody');
+    tbody.innerHTML = '';
+    schedules.forEach((s, i) => {
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td>${s.day}</td>
+        <td>${s.time}</td>
+        <td>${s.subject}</td>
+        <td>${s.level}</td>
+        <td>${s.student}</td>
+        <td>${s.teacher}</td>
+        <td>
+          <button onclick="editSchedule(${i})">แก้ไข</button>
+          <button onclick="deleteSchedule(${i})">ลบ</button>
+        </td>
+      `;
+      tbody.appendChild(row);
+    });
+  }
+
+  function addSchedule(event) {
+    event.preventDefault();
+    const s = {
+      day: document.getElementById('teachDay').value,
+      time: document.getElementById('teachTime').value,
+      subject: document.getElementById('subjectType').value,
+      level: document.getElementById('level').value,
+      student: document.getElementById('student').value,
+      teacher: document.getElementById('teacher').value
+    };
+
+    if (editScheduleIndex !== null) {
+      schedules[editScheduleIndex] = s;
+      editScheduleIndex = null;
+      alert("แก้ไขตารางสอนเรียบร้อย");
+    } else {
+      schedules.push(s);
+      alert("เพิ่มตารางสอนสำเร็จ");
+    }
+
+    localStorage.setItem('schedules', JSON.stringify(schedules));
+    event.target.reset();
+    renderScheduleTable();
+  }
+
+  function editSchedule(index) {
+    const s = schedules[index];
+    document.getElementById('teachDay').value = s.day;
+    document.getElementById('teachTime').value = s.time;
+    document.getElementById('subjectType').value = s.subject;
+    document.getElementById('level').value = s.level;
+    document.getElementById('student').value = s.student;
+    document.getElementById('teacher').value = s.teacher;
+
+    editScheduleIndex = index;
+  }
+
+  function deleteSchedule(index) {
+    if (confirm("ต้องการลบตารางนี้หรือไม่?")) {
+      schedules.splice(index, 1);
+      localStorage.setItem('schedules', JSON.stringify(schedules));
+      renderScheduleTable();
+    }
+  }
+
+  // เรียกเมื่อโหลดหน้า
+  window.onload = () => {
+    const currentMonth = new Date().toISOString().slice(5, 7);
+    document.getElementById('monthSelect').value = currentMonth;
+    renderTable();
+    renderScheduleTable(); // โหลดตารางสอน
+  };
+</script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <script>
+    let plans = JSON.parse(localStorage.getItem('plans')) || [];
+    let editIndex = null;
+
+    function showPage(pageId) {
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.getElementById(pageId).classList.add('active');
+      if (pageId === 'table') renderTable();
+      if (pageId === 'tableByDate') renderTableByDate();
+    }
+
+    function addPlan(event) {
+      event.preventDefault();
+      const startDate = document.getElementById('startDate').value;
+      const endDate = document.getElementById('endDate').value;
+
+      if (new Date(endDate) < new Date(startDate)) {
+        alert('วันที่สิ้นสุดต้องไม่ก่อนวันที่เริ่มต้น');
+        return;
+      }
+
+      const plan = {
+        name: document.getElementById('planName').value,
+        start: startDate,
+        end: endDate,
+        timeIn: document.getElementById('timeIn').value,
+        timeOut: document.getElementById('timeOut').value,
+        status: document.getElementById('planStatus').value,
+        problem: document.getElementById('problem').value,
+        solution: document.getElementById('solution').value,
+        student: document.getElementById('studentName').value,
+        subject: document.getElementById('subject').value,
+        topic: document.getElementById('topic').value,
+        month: startDate.slice(5, 7),
+        createdAt: new Date().toISOString().split('T')[0] // วันที่บันทึก
+      };
+
+      if (editIndex !== null) {
+        plans[editIndex] = plan;
+        editIndex = null;
+        alert("แก้ไขแผนงานสำเร็จ");
+      } else {
+        plans.push(plan);
+        alert("เพิ่มแผนงานสำเร็จ");
+      }
+
+      localStorage.setItem('plans', JSON.stringify(plans));
+      event.target.reset();
+      showPage('table');
+    }
+
+    function renderTable() {
+      const month = document.getElementById('monthSelect').value;
+      const tbody = document.getElementById('planTableBody');
+      tbody.innerHTML = '';
+
+      const statusMap = {
+        'status-done': 'ไม่สำเร็จ',
+        'status-progress': 'ระหว่างทำ',
+        'status-completed': 'สมบูรณ์',
+        'status-unfinish':'ไม่สำเร็จ'
+      };
+
+      plans.filter(p => p.month === month).forEach((p, i) => {
+        const diffDays = Math.ceil((new Date(p.end) - new Date(p.start)) / (1000 * 60 * 60 * 24)) + 1;
+        const row = document.createElement('tr');
+        row.className = p.status;
+        row.innerHTML = `
+          <td>${p.name}</td>
+          <td>${p.start} - ${p.end}</td>
+          <td>${p.timeIn} - ${p.timeOut}</td>
+          <td>${diffDays} วัน</td>
+          <td>${statusMap[p.status]}</td>
+          <td>${p.problem}</td>
+          <td>${p.solution}</td>
+          <td>${p.student}</td>
+          <td>${p.subject}</td>
+          <td>${p.topic}</td>
+          <td>
+            <button onclick="editPlan(${i})">แก้ไข</button>
+            <button onclick="deletePlan(${i})">ลบ</button>
+          </td>
+        `;
+        tbody.appendChild(row);
+      });
+    }
+
+    function renderTableByDate() {
+      const tbody = document.getElementById('tableByDateBody');
+      tbody.innerHTML = '';
+
+      const grouped = {};
+      plans.forEach(p => {
+        if (!grouped[p.createdAt]) grouped[p.createdAt] = [];
+        grouped[p.createdAt].push(p);
+      });
+
+      Object.keys(grouped).sort().forEach(date => {
+        grouped[date].forEach(p => {
+          const diffDays = Math.ceil((new Date(p.end) - new Date(p.start)) / (1000 * 60 * 60 * 24)) + 1;
+          const row = document.createElement('tr');
+          row.innerHTML = `
+                       <td>${date}</td>
+            <td>${p.name}</td>
+            <td>${p.start} - ${p.end}</td>
+            <td>${p.timeIn} - ${p.timeOut}</td>
+            <td>${diffDays} วัน</td>
+            <td>${p.status}</td>
+            <td>${p.student}</td>
+          `;
+          tbody.appendChild(row);
+        });
+      });
+    }
+
+    function editPlan(index) {
+      const p = plans[index];
+      document.getElementById('planName').value = p.name;
+      document.getElementById('startDate').value = p.start;
+      document.getElementById('endDate').value = p.end;
+      document.getElementById('timeIn').value = p.timeIn;
+      document.getElementById('timeOut').value = p.timeOut;
+      document.getElementById('planStatus').value = p.status;
+      document.getElementById('problem').value = p.problem;
+      document.getElementById('solution').value = p.solution;
+      document.getElementById('studentName').value = p.student;
+      document.getElementById('subject').value = p.subject;
+      document.getElementById('topic').value = p.topic;
+
+      editIndex = index;
+      showPage('add');
+    }
+
+    function deletePlan(index) {
+      if (confirm("คุณต้องการลบแผนงานนี้หรือไม่?")) {
+        plans.splice(index, 1);
+        localStorage.setItem('plans', JSON.stringify(plans));
+        renderTable();
+        renderTableByDate();
+      }
+    }
+
+    function downloadPDF() {
+      const element = document.getElementById('planTable');
+      const opt = {
+        margin:       0.3,
+        filename:     'ตารางแผนงาน.pdf',
+        image:        { type: 'jpeg', quality:4},
+        html2canvas:  { scale: 4 },
+        jsPDF:        { unit: 'in', format: 'a4', orientation: 'landscape' }
+      };
+      html2pdf().set(opt).from(element).save();
+    }
+  
+  </script>
+  
+</body>
+</html> 
+
+
+
